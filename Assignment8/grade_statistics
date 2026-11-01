@@ -1,0 +1,92 @@
+from pathlib import Path
+
+GRADES_FILE = Path(__file__).resolve().parent / "grades.csv"
+
+TEST_WEIGHT = 0.3
+EXAM_WEIGHT = 0.3
+DISCUSSION_WEIGHT = 0.2
+PROJECT_WEIGHT = 0.2
+
+
+def main():
+    """Read the grades file, compute each student's weighted final
+    grade, and print a summary of how many students fall into each
+    grade range."""
+    try:
+        weight_final_list = []
+        with open(GRADES_FILE, "r") as file:
+            next(file)  # skip header row
+            for row in file:
+                row = row.strip()
+                if not row:
+                    continue
+                fields = row.split(",")
+                weight_final_list.append(process_row(fields))
+        analyze_grade(weight_final_list)
+    except FileNotFoundError:
+        print(f"Error: could not find the file {GRADES_FILE}.")
+    except (ValueError, IndexError) as e:
+        print(f"Error processing the grades file: {e}")
+    except OSError as e:
+        print(f"Error reading the grades file: {e}")
+
+
+def process_row(row):
+    """Given one row from the grades file, return that student's
+    weighted final grade (bypass the Name and StudentID columns)."""
+    scores = [float(x) for x in row[2:]]
+
+    test_avg = average_subject(scores[0:4])          # Test1-Test4
+    exam_avg = average_subject(scores[4:6])          # Exam1-Exam2
+    discussion_avg = average_subject(scores[6:8])    # Discussion1-Discussion2
+    project_score = scores[8]                        # Project
+
+    return weight_final(test_avg, exam_avg, discussion_avg, project_score)
+
+
+def average_subject(subject_list):
+    """Return the average of the scores in subject_list."""
+    return sum(subject_list) / len(subject_list)
+
+
+def weight_final(test_avg, exam_avg, discussion_avg, project_score):
+    """Return a student's weighted final grade, combining the test,
+    exam, discussion, and project scores using the weight constants
+    declared above."""
+    return (
+        test_avg * TEST_WEIGHT
+        + exam_avg * EXAM_WEIGHT
+        + discussion_avg * DISCUSSION_WEIGHT
+        + project_score * PROJECT_WEIGHT
+    )
+
+
+def analyze_grade(weight_final_list):
+    """Count and print how many students fall into each grade range:
+    90 or above, 80-89, 70-79, 60-69, and below 60."""
+    counts = {
+        "90 or above": 0,
+        "80-89": 0,
+        "70-79": 0,
+        "60-69": 0,
+        "below 60": 0,
+    }
+
+    for grade in weight_final_list:
+        if grade >= 90:
+            counts["90 or above"] += 1
+        elif grade >= 80:
+            counts["80-89"] += 1
+        elif grade >= 70:
+            counts["70-79"] += 1
+        elif grade >= 60:
+            counts["60-69"] += 1
+        else:
+            counts["below 60"] += 1
+
+    for label, count in counts.items():
+        print(f"Number of students with final grade {label}: {count}")
+
+
+if __name__ == "__main__":
+    main()
